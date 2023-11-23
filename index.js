@@ -54,17 +54,6 @@ const commands = [
                 required: true,
             },
         ],
-    },{
-        name: "remove",
-        description: "removes only the most recent request from a member from the registration queue",
-        options: [
-            {
-                name: "member",
-                description: "The member to remove",
-                type: 6,
-                required: true,
-            },
-        ],
     }
 ];
 
@@ -191,10 +180,17 @@ client.on("interactionCreate", async (interaction) => {
             }
             //reverse the order of the queue, so that the newest is first
             userarray.reverse();
-            //check if user is already registered
+            //check if user is in the queue, and list all instances as code blocks
             if (userarray.some(e => e.id === `${member.id} Pastable: <@${member.id}>`)) {
                 console.log(`${member.user.username} is in the queue.`);
-                interaction.editReply({content: `${member.user.username} is in the queue.`, embeds: [new EmbedBuilder().setTitle("User Info").setDescription(`**Name on student ID:** ${userarray.find(e => e.id === `${member.id} Pastable: <@${member.id}>`).DeclaredName}\n**Student ID:** ${userarray.find(e => e.id === `${member.id} Pastable: <@${member.id}>`).DeclaredID}\n **User ID: ${userarray.find(e => e.id === `${member.id} Pastable: <@${member.id}>`).id}`).setColor("#00ff00")]});
+                var instances = [];
+                for (let i = 0; i < userarray.length; i++) {
+                    if (userarray[i].id === `${member.id} Pastable: <@${member.id}>`) {
+                        instances.push(`\`\`\`Discord ID: ${userarray[i].id}\nDiscord Username: ${userarray[i].username}\nDeclared ID: ${userarray[i].DeclaredID}\nDeclared name:${userarray[i].DeclaredName}\nFirst time? ${userarray[i].firsttime === true ? "yes" : "no"}\`\`\``);
+                    }
+                }
+                interaction.editReply({content: `${member.user.username} is in the queue.`, embeds: [new EmbedBuilder().setTitle(`${member.user.username}`).setDescription(`${instances.join("\n")}`)], ephemeral: true});
+
             } else {
                 console.log(`${member.user.username} is not in the queue.`);
                 interaction.editReply({content: `${member.user.username} is not in the queue.`});
@@ -202,39 +198,7 @@ client.on("interactionCreate", async (interaction) => {
         });
     }
 
-    if (interaction.commandName === "remove") {
-        const member = interaction.options.getMember("member");
-        console.log(`Checking if ${member.user.username} is in the queue.`);
-        await interaction.reply(`Checking if ${member.user.username} is in the queue.`);
-        FileSystem.readFile("./users.json", (err, data) => {
-            if (err) console.log(err);
-            try {
-                var userarray = JSON.parse(data);
-                if (!Array.isArray(userarray)) {
-                    throw new Error("Invalid data in users.json");
-                }
-            } catch (error) {
-                console.error("Failed to parse users.json, halting");
-                process.exit(1);
-            }
-            //reverse the order of the queue, so that the newest is first
-            userarray.reverse();
-            //check if user is already registered
-            if (userarray.some(e => e.id === `${member.id} Pastable: <@${member.id}>`)) {
-                console.log(`${member.user.username} is in the queue. Removing.`);
-                //only remove the most recent request
-                userarray.splice(userarray.findIndex(e => e.id === `${member.id} Pastable: <@${member.id}>`), 1);
-                userarray.reverse();
-                FileSystem.writeFile("./users.json", JSON.stringify(userarray, null, 2), (err) => {
-                    if (err) console.log(err);
-                    interaction.editReply(`Removed ${member.user.username} from the registration queue.`);
-                });
-            } else {
-                console.log(`${member.user.username} is not in the queue.`);
-                interaction.editReply(`${member.user.username} is not in the queue.`);
-            }
-        });
-    }
+    
     client.user.setActivity("to user input input", { type: "LISTENING" });
 });
 
